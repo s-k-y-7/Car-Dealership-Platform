@@ -118,7 +118,13 @@ The application uses a **clean two-part decoupled architecture**:
 * On the Vehicle Details page, the user selects their registration city (Lucknow, Kanpur, Varanasi, Noida).
 * Pricing is fetched from the database table `OnRoadPrice` as the single source of truth.
 * Calculation breakdown displays:
-  $$\text{On-Road Price} = \text{Ex-Showroom} + \text{Road Tax (RTO)} + \text{Comprehensive Insurance} + \text{Accessories} + \text{FASTag \& Reg}$$
+   $$
+   \text{On-Road Price} =
+   \text{Ex-Showroom Price}
+   + \text{Road Tax (RTO)}
+   + \text{Insurance}
+   + \text{Registration Charges}
+   $$
 * Changes made by an Administrator to `OnRoadPrice` immediately update public quotes.
 
 #### B. VIP Test-Drive Booking with Double-Booking Prevention
