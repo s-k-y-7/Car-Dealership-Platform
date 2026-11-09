@@ -21,21 +21,20 @@ Copy `.env.example` to `.env` in the project root:
 cp .env.example .env
 ```
 
-| Environment Variable | Description | Default Value |
-|----------------------|-------------|---------------|
-| `DJANGO_SECRET_KEY` | Django cryptographic secret key | *Random secure string* |
-| `DJANGO_DEBUG` | Enable debug mode for local development | `True` |
-| `ALLOWED_HOSTS` | Comma-separated allowed hostnames | `localhost,127.0.0.1` |
-| `DB_ENGINE` | Database backend engine (`postgres` or `sqlite`) | `postgres` |
-| `DB_NAME` | PostgreSQL database name | `car_dealership_db` |
-| `DB_USER` | PostgreSQL user | `postgres` |
-| `DB_PASSWORD` | PostgreSQL password | `""` |
-| `DB_HOST` | PostgreSQL host | `localhost` |
-| `DB_PORT` | PostgreSQL port | `5432` |
-| `GROQ_API_KEY` | Groq API Key for server-side AI integration | *(Optional — activates rule-based fallback if empty)* |
-| `GROQ_MODEL` | LLM model identifier | `llama-3.3-70b-versatile` |
-| `GROQ_API_URL` | Groq completions API endpoint | `https://api.groq.com/openai/v1/chat/completions` |
-
+| Environment Variable | Description |
+|----------------------|-------------|
+| `DJANGO_SECRET_KEY` | Django cryptographic secret key | 
+| `DJANGO_DEBUG` | Enable debug mode for local development | 
+| `ALLOWED_HOSTS` | Comma-separated allowed hostnames | 
+| `DB_ENGINE` | Database backend engine 
+| `DB_NAME` | PostgreSQL database name | 
+| `DB_USER` | PostgreSQL user | 
+| `DB_PASSWORD` | PostgreSQL password |
+| `DB_HOST` | PostgreSQL host | 
+| `DB_PORT` | PostgreSQL port |
+| `GROQ_API_KEY` | Groq API Key for server-side AI integration | 
+| `GROQ_MODEL` | LLM model identifier | 
+| `GROQ_API_URL` | Groq completions API endpoint | 
 ---
 
 ### 3. Step-by-Step Local Setup
@@ -116,7 +115,7 @@ The application includes convenient **1-Click Demo Profile Switchers** on the na
 
 ### 5. Automated Verification Suite
 
-To verify the end-to-end functionality across all 10 acceptance criteria (browsing, price calculation, test-drive collision prevention, automatic lead distribution, response timers, AI generation, and admin immediate pricing updates):
+To verify the end-to-end functionality across all 9 acceptance criteria (browsing, price calculation, test-drive collision prevention, automatic lead distribution, response timers, AI generation, and admin immediate pricing updates):
 
 ```bash
 python test_e2e_verification.py

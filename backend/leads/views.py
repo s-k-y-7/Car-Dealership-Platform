@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
-from .models import TestDriveBooking, Lead, LeadActivity, AIInteraction, LeadStatus, LeadPriority, LeadSource
+from .models import TestDriveBooking, Lead, LeadActivity, AIInteraction, LeadStatus, LeadPriority, LeadSource, BookingStatus
 from .serializers import (
     TestDriveBookingSerializer, LeadListSerializer,
     LeadDetailSerializer, LeadActivitySerializer
@@ -56,11 +56,12 @@ class TestDriveBookingCreateView(views.APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        booking = serializer.save()
+        booking = serializer.save(user=request.user if request.user.is_authenticated else None)
 
         # Automatically create corresponding Lead
         vehicle = booking.vehicle
         lead = Lead.objects.create(
+            user=request.user if request.user.is_authenticated else None,
             source=LeadSource.TEST_DRIVE,
             customer_name=booking.customer_name,
             customer_phone=booking.customer_phone,
@@ -125,6 +126,7 @@ class PublicEnquiryCreateView(views.APIView):
                 pass
 
         lead = Lead.objects.create(
+            user=request.user if request.user.is_authenticated else None,
             source=source,
             customer_name=customer_name,
             customer_phone=customer_phone,
@@ -414,3 +416,176 @@ class LeadReassignView(views.APIView):
         )
 
         return Response({'message': f'Lead reassigned to {new_consultant.full_name}.'})
+
+
+# ===================== BUYER ACCOUNT & DASHBOARD VIEWS =====================
+
+def get_buyer_bookings_queryset(user):
+    """
+    Returns bookings associated with the buyer user either by foreign key or matching contact details.
+    """
+    q = Q(user=user)
+    if user.email:
+        q |= Q(customer_email__iexact=user.email)
+    if user.phone:
+        q |= Q(customer_phone=user.phone)
+    return TestDriveBooking.objects.filter(q).select_related('vehicle', 'showroom', 'showroom__city').order_by('-preferred_date', '-created_at').distinct()
+
+
+def get_buyer_leads_queryset(user):
+    """
+    Returns leads/enquiries associated with the buyer user either by foreign key or matching contact details.
+    """
+    q = Q(user=user)
+    if user.email:
+        q |= Q(customer_email__iexact=user.email)
+    if user.phone:
+        q |= Q(customer_phone=user.phone)
+    return Lead.objects.filter(q).select_related('interested_vehicle', 'assigned_consultant', 'test_drive_booking').order_by('-created_at').distinct()
+
+
+class BuyerDashboardView(views.APIView):
+    """
+    Authenticated Buyer Dashboard overview:
+    Upcoming test drives, recent enquiries, activity history, and profile stats.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        bookings_qs = get_buyer_bookings_queryset(user)
+        leads_qs = get_buyer_leads_queryset(user)
+
+        today = timezone.now().date()
+        upcoming_bookings = bookings_qs.filter(
+            preferred_date__gte=today,
+            status__in=[BookingStatus.REQUESTED, BookingStatus.CONFIRMED]
+        )[:5]
+
+        recent_enquiries = leads_qs[:5]
+
+        # Recent activities across buyer's leads
+        recent_activities = LeadActivity.objects.filter(
+            lead__in=leads_qs
+        ).order_by('-created_at')[:8]
+
+        total_bookings = bookings_qs.count()
+        active_enquiries = leads_qs.filter(~Q(status__in=[LeadStatus.WON, LeadStatus.LOST])).count()
+        completed_test_drives = bookings_qs.filter(status=BookingStatus.COMPLETED).count()
+
+        return Response({
+            'profile': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'full_name': user.full_name or user.username,
+                'phone': user.phone,
+                'role': user.role,
+                'date_joined': user.date_joined,
+            },
+            'stats': {
+                'total_bookings': total_bookings,
+                'upcoming_bookings_count': upcoming_bookings.count(),
+                'active_enquiries_count': active_enquiries,
+                'completed_test_drives': completed_test_drives,
+            },
+            'upcoming_test_drives': TestDriveBookingSerializer(upcoming_bookings, many=True).data,
+            'recent_enquiries': LeadListSerializer(recent_enquiries, many=True).data,
+            'recent_activities': LeadActivitySerializer(recent_activities, many=True).data,
+        })
+
+
+class BuyerBookingListView(views.APIView):
+    """
+    List all test drives for the authenticated buyer.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        bookings = get_buyer_bookings_queryset(request.user)
+        return Response(TestDriveBookingSerializer(bookings, many=True).data)
+
+
+class BuyerBookingCancelView(views.APIView):
+    """
+    Cancel an upcoming test drive booking for the authenticated buyer.
+    Strictly verifies ownership to prevent unauthorized cancellations.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, id):
+        booking = get_object_or_404(TestDriveBooking, id=id)
+        user = request.user
+        
+        # Verify ownership
+        is_owner = (
+            booking.user_id == user.id or
+            (user.email and booking.customer_email.lower() == user.email.lower()) or
+            (user.phone and booking.customer_phone == user.phone)
+        )
+        if not is_owner and user.role != 'ADMIN':
+            return Response({'detail': 'You are not authorized to cancel this booking.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if booking.status in [BookingStatus.CANCELLED, BookingStatus.COMPLETED]:
+            return Response({'detail': f'Booking cannot be cancelled because it is already {booking.get_status_display().lower()}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        booking.status = BookingStatus.CANCELLED
+        booking.save(update_fields=['status', 'updated_at'])
+
+        # Log activity on linked lead
+        try:
+            lead = booking.lead
+            LeadActivity.objects.create(
+                lead=lead,
+                performed_by=user,
+                activity_type=LeadActivity.ActivityType.STATUS_CHANGE,
+                details=f"VIP Test drive {booking.booking_reference} cancelled by customer."
+            )
+        except Exception:
+            pass
+
+        return Response({
+            'message': 'Test drive booking cancelled successfully.',
+            'booking': TestDriveBookingSerializer(booking).data
+        })
+
+
+class BuyerEnquiryListView(views.APIView):
+    """
+    List all enquiries for the authenticated buyer.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        leads = get_buyer_leads_queryset(request.user)
+        return Response(LeadListSerializer(leads, many=True).data)
+
+
+class BuyerProfileUpdateView(views.APIView):
+    """
+    Update profile details for the authenticated buyer.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request):
+        user = request.user
+        full_name = request.data.get('full_name')
+        phone = request.data.get('phone')
+
+        if full_name is not None:
+            user.full_name = full_name.strip()
+            parts = user.full_name.split(' ', 1)
+            user.first_name = parts[0]
+            user.last_name = parts[1] if len(parts) > 1 else ''
+
+        if phone is not None:
+            user.phone = phone.strip()
+
+        user.save()
+
+        from core.serializers import UserSerializer
+        return Response({
+            'message': 'Profile updated successfully.',
+            'user': UserSerializer(user).data
+        })
+

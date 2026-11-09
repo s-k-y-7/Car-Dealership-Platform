@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<User>;
   demoLogin: (role: UserRole) => Promise<User>;
   logout: () => void;
+  updateUser: (updated: Partial<User>) => void;
   isAuthenticated: boolean;
 }
 
@@ -69,6 +70,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateUser = (updated: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const merged = { ...prev, ...updated };
+      localStorage.setItem('user', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -77,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         demoLogin,
         logout,
+        updateUser,
         isAuthenticated: !!user,
       }}
     >

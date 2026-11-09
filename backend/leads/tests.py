@@ -140,3 +140,115 @@ class LeadWorkflowTestCase(TestCase):
         self.assertIn('Vikram Seth', draft_result['draft'])
         self.assertIn('Consultant A', draft_result['draft'])
         self.assertTrue(draft_result['is_fallback'])
+
+
+class BuyerSecurityAndWorkflowTestCase(TestCase):
+    def setUp(self):
+        self.city = City.objects.create(name='Lucknow', state='Uttar Pradesh')
+        self.showroom = Showroom.objects.create(
+            name='Hazratganj Flagship',
+            city=self.city,
+            address='M.G. Marg',
+            phone='+91 522 261 4000'
+        )
+        self.vehicle = Vehicle.objects.create(
+            stock_id='TEST-TD-02',
+            vehicle_type=VehicleType.NEW,
+            brand='Brand X',
+            model_name='Model H',
+            variant='ZX',
+            year=2026,
+            ex_showroom_price=Decimal('1245000.00'),
+            hero_image='https://example.com/car.jpg'
+        )
+        self.buyer1 = User.objects.create_user(
+            username='buyer.one',
+            email='buyer1@example.com',
+            role='BUYER',
+            full_name='Buyer One',
+            phone='+91 94150 00001'
+        )
+        self.buyer2 = User.objects.create_user(
+            username='buyer.two',
+            email='buyer2@example.com',
+            role='BUYER',
+            full_name='Buyer Two',
+            phone='+91 94150 00002'
+        )
+        # Create a booking for buyer1
+        self.booking1 = TestDriveBooking.objects.create(
+            user=self.buyer1,
+            vehicle=self.vehicle,
+            showroom=self.showroom,
+            customer_name='Buyer One',
+            customer_phone='+91 94150 00001',
+            customer_email='buyer1@example.com',
+            preferred_date=timezone.now().date() + timedelta(days=3),
+            time_slot='10:00 AM - 11:00 AM'
+        )
+        self.lead1 = Lead.objects.create(
+            user=self.buyer1,
+            customer_name='Buyer One',
+            customer_phone='+91 94150 00001',
+            customer_email='buyer1@example.com',
+            interested_vehicle=self.vehicle,
+            test_drive_booking=self.booking1,
+            status=LeadStatus.NEW
+        )
+
+    def test_buyer_dashboard_data_isolation(self):
+        """Verifies buyer dashboard only returns records belonging to the authenticated buyer."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        
+        # Unauthenticated request returns 401
+        res = client.get('/api/buyer/dashboard/')
+        self.assertEqual(res.status_code, 401)
+
+        # Buyer 1 sees booking1
+        client.force_authenticate(user=self.buyer1)
+        res1 = client.get('/api/buyer/dashboard/')
+        self.assertEqual(res1.status_code, 200)
+        self.assertEqual(len(res1.data['upcoming_test_drives']), 1)
+        self.assertEqual(res1.data['upcoming_test_drives'][0]['booking_reference'], self.booking1.booking_reference)
+
+        # Buyer 2 sees NO bookings
+        client.force_authenticate(user=self.buyer2)
+        res2 = client.get('/api/buyer/dashboard/')
+        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(len(res2.data['upcoming_test_drives']), 0)
+
+    def test_buyer_cannot_cancel_other_buyer_booking(self):
+        """Security: Buyer 2 attempting to cancel Buyer 1's booking must receive 403 Forbidden."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.buyer2)
+
+        res = client.post(f'/api/buyer/bookings/{self.booking1.id}/cancel/')
+        self.assertEqual(res.status_code, 403)
+        self.booking1.refresh_from_db()
+        self.assertNotEqual(self.booking1.status, 'CANCELLED')
+
+    def test_buyer_can_cancel_own_booking(self):
+        """Buyer 1 successfully cancels own booking."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.buyer1)
+
+        res = client.post(f'/api/buyer/bookings/{self.booking1.id}/cancel/')
+        self.assertEqual(res.status_code, 200)
+        self.booking1.refresh_from_db()
+        self.assertEqual(self.booking1.status, 'CANCELLED')
+
+    def test_buyer_profile_update(self):
+        """Buyer can update their full name and phone number."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.buyer1)
+
+        res = client.patch('/api/buyer/profile/', {'full_name': 'Buyer One Updated', 'phone': '+91 94150 99999'})
+        self.assertEqual(res.status_code, 200)
+        self.buyer1.refresh_from_db()
+        self.assertEqual(self.buyer1.full_name, 'Buyer One Updated')
+        self.assertEqual(self.buyer1.phone, '+91 94150 99999')
+

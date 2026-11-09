@@ -10,12 +10,12 @@ class TestDriveBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = TestDriveBooking
         fields = [
-            'id', 'booking_reference', 'vehicle', 'vehicle_details',
+            'id', 'booking_reference', 'user', 'vehicle', 'vehicle_details',
             'showroom', 'showroom_details', 'customer_name', 'customer_phone',
             'customer_email', 'preferred_date', 'time_slot', 'status',
             'notes', 'consent_given', 'created_at'
         ]
-        read_only_fields = ['id', 'booking_reference', 'created_at']
+        read_only_fields = ['id', 'booking_reference', 'user', 'created_at']
 
     def validate(self, data):
         vehicle = data.get('vehicle')

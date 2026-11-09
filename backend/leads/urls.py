@@ -2,7 +2,9 @@ from django.urls import path
 from .views import (
     TestDriveBookingCreateView, PublicEnquiryCreateView,
     LeadInboxDashboardView, LeadDetailView, LeadStatusUpdateView,
-    LeadAddNoteView, LeadAISummaryView, LeadAIDraftReplyView, LeadReassignView
+    LeadAddNoteView, LeadAISummaryView, LeadAIDraftReplyView, LeadReassignView,
+    BuyerDashboardView, BuyerBookingListView, BuyerBookingCancelView,
+    BuyerEnquiryListView, BuyerProfileUpdateView
 )
 
 urlpatterns = [
@@ -18,4 +20,11 @@ urlpatterns = [
     path('leads/<int:id>/ai-summary/', LeadAISummaryView.as_view(), name='lead-ai-summary'),
     path('leads/<int:id>/ai-draft/', LeadAIDraftReplyView.as_view(), name='lead-ai-draft'),
     path('leads/<int:id>/reassign/', LeadReassignView.as_view(), name='lead-reassign'),
+
+    # Authenticated Buyer Portal Endpoints
+    path('buyer/dashboard/', BuyerDashboardView.as_view(), name='buyer-dashboard'),
+    path('buyer/bookings/', BuyerBookingListView.as_view(), name='buyer-bookings'),
+    path('buyer/bookings/<int:id>/cancel/', BuyerBookingCancelView.as_view(), name='buyer-booking-cancel'),
+    path('buyer/enquiries/', BuyerEnquiryListView.as_view(), name='buyer-enquiries'),
+    path('buyer/profile/', BuyerProfileUpdateView.as_view(), name='buyer-profile-update'),
 ]

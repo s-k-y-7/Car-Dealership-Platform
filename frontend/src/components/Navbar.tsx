@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   Car, ShieldCheck, Calendar, User as UserIcon, LogOut,
-  MapPin, ChevronDown, Sparkles, LayoutDashboard, Wrench
+  MapPin, ChevronDown, LayoutDashboard
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -16,8 +16,57 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenTestDrive, onOpenLogin }) 
   const navigate = useNavigate();
   const location = useLocation();
   const [userDropdown, setUserDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Close dropdown on route change
+  useEffect(() => {
+    setUserDropdown(false);
+  }, [location.pathname, location.search]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setUserDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Close dropdown on Escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setUserDropdown(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  /**
+   * Navigate to a section on the homepage.
+   * If already on '/', scroll the section into view directly.
+   * Otherwise navigate to '/?section=<id>' and let HomePage scroll on mount.
+   */
+  const goToSection = (sectionId: string, typeFilter?: string) => {
+    if (location.pathname === '/') {
+      // Already on homepage — apply filter param and scroll
+      const params = new URLSearchParams(location.search);
+      if (typeFilter) params.set('type', typeFilter);
+      else params.delete('type');
+      navigate({ pathname: '/', search: params.toString() }, { replace: true });
+      setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } else {
+      const params = new URLSearchParams();
+      if (typeFilter) params.set('type', typeFilter);
+      params.set('section', sectionId);
+      navigate({ pathname: '/', search: params.toString() });
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all shadow-sm">
@@ -87,30 +136,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenTestDrive, onOpenLogin }) 
 
         {/* Navigation Links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
-          <Link 
-            to="/" 
-            className={`transition hover:text-[#9E1B24] ${isActive('/') ? 'text-[#9E1B24] font-semibold' : ''}`}
+          <button
+            onClick={() => goToSection('showroom-inventory')}
+            className="hover:text-[#9E1B24] transition flex items-center gap-1"
           >
+            <Car className="w-4 h-4 text-gray-400" />
             Showroom & Inventory
-          </Link>
-          <a 
-            href="/#new-cars" 
-            className="hover:text-[#9E1B24] transition flex items-center gap-1"
-          >
-            <Car className="w-4 h-4 text-gray-400" /> New Cars
-          </a>
-          <a 
-            href="/#certified-used" 
-            className="hover:text-[#9E1B24] transition flex items-center gap-1"
-          >
-            <ShieldCheck className="w-4 h-4 text-emerald-600" /> Certified Used
-          </a>
-          <a 
-            href="/#showrooms" 
+          </button>
+          <button
+            onClick={() => goToSection('showrooms')}
             className="hover:text-[#9E1B24] transition flex items-center gap-1"
           >
             <MapPin className="w-4 h-4 text-gray-400" /> Dealership Locations
-          </a>
+          </button>
         </div>
 
         {/* Actions & User Role Controls */}
@@ -146,7 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenTestDrive, onOpenLogin }) 
 
           {/* User Account / Login Button */}
           {user ? (
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setUserDropdown(!userDropdown)}
                 className="flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-md transition"
@@ -166,6 +204,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenTestDrive, onOpenLogin }) 
                       {user.role} ROLE
                     </span>
                   </div>
+
+                  {user.role === 'BUYER' && (
+                    <Link
+                      to="/my-account"
+                      onClick={() => setUserDropdown(false)}
+                      className="block px-4 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      My Account & Bookings
+                    </Link>
+                  )}
 
                   {user.role === 'CONSULTANT' && (
                     <Link

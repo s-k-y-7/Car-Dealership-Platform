@@ -38,6 +38,13 @@ class LeadPriority(models.TextChoices):
 
 class TestDriveBooking(models.Model):
     booking_reference = models.CharField(max_length=50, unique=True, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='test_drive_bookings'
+    )
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='test_drives')
     showroom = models.ForeignKey(Showroom, on_delete=models.CASCADE, related_name='test_drives')
     
@@ -75,6 +82,13 @@ class TestDriveBooking(models.Model):
 
 class Lead(models.Model):
     lead_reference = models.CharField(max_length=50, unique=True, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='buyer_leads'
+    )
     source = models.CharField(max_length=30, choices=LeadSource.choices, default=LeadSource.WEBSITE_ENQUIRY)
     
     customer_name = models.CharField(max_length=150)

@@ -174,3 +174,24 @@ export interface DashboardKPIs {
   test_drive_scheduled: number;
   converted_leads: number;
 }
+
+export interface BuyerDashboardData {
+  profile: {
+    id: number;
+    username: string;
+    email: string;
+    full_name: string;
+    phone: string;
+    role: UserRole;
+    date_joined: string;
+  };
+  stats: {
+    total_bookings: number;
+    upcoming_bookings_count: number;
+    active_enquiries_count: number;
+    completed_test_drives: number;
+  };
+  upcoming_test_drives: TestDriveBooking[];
+  recent_enquiries: Lead[];
+  recent_activities: LeadActivity[];
+}

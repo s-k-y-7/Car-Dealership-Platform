@@ -413,8 +413,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenTestDrive }) => {
             {showrooms.map((showroom) => (
               <div 
                 key={showroom.id} 
-                className="p-5 rounded-xl border border-gray-200 hover:border-[#9E1B24] transition-all bg-[#FAFAFA] flex flex-col justify-between"
-              >
+                className="p-5 rounded-xl border border-gray-200 bg-[#FAFAFA] flex flex-col justify-between"              >
                 <div className="space-y-3">
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-200 text-gray-700">

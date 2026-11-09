@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../services/api';
@@ -446,8 +447,25 @@ export const LeadDetailPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap font-sans bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                      {aiSummaryResult.summary}
+                    <div className="text-xs text-gray-800 leading-relaxed font-sans bg-white p-4 rounded-lg border border-gray-200 shadow-sm prose prose-sm max-w-none">
+                      <ReactMarkdown
+                        components={{
+                          strong: ({ children }) => (
+                            <strong className="font-bold text-gray-900">{children}</strong>
+                          ),
+                          ul: ({ children }) => (
+                            <ul className="list-disc pl-5 my-2 space-y-1">{children}</ul>
+                          ),
+                          ol: ({ children }) => (
+                            <ol className="list-decimal pl-5 my-2 space-y-1">{children}</ol>
+                          ),
+                          p: ({ children }) => (
+                            <p className="mb-2 last:mb-0">{children}</p>
+                          ),
+                        }}
+                      >
+                        {aiSummaryResult.summary}
+                      </ReactMarkdown>
                     </div>
                   </div>
                 )}

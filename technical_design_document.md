@@ -3,7 +3,11 @@
 
 ---
 
+**GitHub Repository:** https://github.com/s-k-y-7/Car-Dealership-Platform
+
 ### 1. Executive Summary & Problem Statement
+
+**Assumptions:** Brand X, Company A, dealership locations, vehicle listings, prices, and customer records are fictional sample data created for demonstration purposes. Pricing components and operational rules are illustrative and should not be treated as verified official dealership quotations.
 
 **Company A** is the exclusive authorized dealer for **Brand X** in Lucknow, operating:
 * 3 premier automotive showrooms (Hazratganj Flagship, Gomti Nagar Experience Centre, Kanpur Road Showroom).
@@ -165,8 +169,23 @@ The application uses a **clean two-part decoupled architecture**:
    * Explicit checkboxes capture user consent for contact and appointment scheduling.
 
 ---
+### 7. UI & Design Decisions
 
-### 7. Deliberately Excluded Features & Future Roadmap
+The interface follows a premium automotive editorial design language, using deep obsidian backgrounds, crimson accents, serif headings, and spacious layouts.
+
+Key screens:
+- **Public Homepage:** A cinematic vehicle-focused landing page with prominent inventory exploration and test-drive booking actions.
+- **Inventory:** Vehicle cards with filtering by fuel type, transmission, price, and vehicle category.
+- **Vehicle Details & Price Breakdown:** Large vehicle imagery alongside a city-specific, itemized on-road quotation.
+- **Showroom Locations:** Dedicated cards displaying showroom addresses, contact information, operating hours, and visit scheduling.
+- **Test Drive Booking:** A modal-based booking experience that collects vehicle, showroom, date, time slot, and customer details.
+- **Consultant CRM:** A two-column lead management interface with customer information, activity history, AI-generated assistance, and response tracking.
+
+The navigation was simplified to avoid redundant links that previously led to the same inventory component. Vehicle filtering remains available within the inventory page.
+
+The design prioritizes desktop usability while maintaining responsive layouts for smaller screens.
+---
+### 8. Deliberately Excluded Features & Future Roadmap
 
 * **Deliberately Excluded**:
   * Real payment gateway (credit card/UPI down payments): Replaced with simulated order booking per brief guidelines to avoid third-party sandbox friction.
@@ -176,3 +195,6 @@ The application uses a **clean two-part decoupled architecture**:
   * Real-time WebSocket updates for lead assignments across consultant browsers.
   * WhatsApp Business Cloud API integration for automated template messaging.
   * Direct VAHAN database integration for automated trade-in vehicle valuation.
+
+---
+
